@@ -30,14 +30,14 @@ function Player(x)
   this.update = function (dir)
   {
     //To make it move upward
-    if(dir === 1)
+    if(dir === 2)
     {
       //Updating position with mouse
       this.y -= this.velocity;
     }
 
     //If it is moving downward
-    else if(dir === -1)
+    else if(dir === 0)
     {
       //Updating the position
       this.y += this.velocity;

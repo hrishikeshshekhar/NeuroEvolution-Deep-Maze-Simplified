@@ -3,7 +3,7 @@ var canvas = document.querySelector('canvas');
 var c      = canvas.getContext('2d');
 
 //A variable for keeping track of the population size
-const total = 200;
+const total = 10;
 
 //Setting canvas height and width
 canvas.width  = 800;
@@ -73,7 +73,7 @@ function setup()
   //Creating a neural networks
   for(var i = 0; i < total; ++i)
   {
-    brains[i] = new Nn(4, 4, 3);
+    brains[i] = new Nn(4, 8, 3);
     brains[i].setup();
   }
 
@@ -175,7 +175,7 @@ function check()
     {
       //Removing the player
       var killed = players.splice(j, 1)[0];
-      killed.reward = score;
+      killed.reward += score;
       savedplayers.push(killed);
 
       //Checking if the game is over
@@ -206,9 +206,6 @@ function check()
           {
             //Resetting it's position back to the left of it
             players[j].x = walls[i].x - players[j].dwidth;
-
-            //Reducing the player's reward
-            players[j].reward -= 100;
           }
         }
 
@@ -332,7 +329,7 @@ function restart()
     if(i === 0)
     {
       //Creating a new wall
-      var wall = new Wall(width * 0.75);
+      var wall = new Wall(players[0].x + minspacing + (maxspacing - minspacing) * Math.random());
 
       //Setting up the wall
       wall.setup();
@@ -381,20 +378,69 @@ function think()
     }
 
     //Height of person
-    let input1 = players[j].y / height;
+    let input1 = players[j].x / width;
 
     //The horizontal distance from a wall
-    let input2 = (closestwall.x - players[j].x) / width;
+    let input2 = (closestwall.x - players[j].x - players[j].dwidth) / width;
 
     //The distance from a wall's top opening
-    let input3, input4;
+    let input3, input4, top, bottom;
     for(var i = 0; i < closestwall.open.length; ++i)
     {
       if(closestwall.open[i] === true)
       {
-        input3 = closestwall.scale * i / height;
-        input4 = input3 + closestwall.scale / height;
+        top = closestwall.scale * i;
+        bottom = closestwall.scale * (i + 1);
+        input3 = (top - players[j].y)/ height;
+        input4 = (bottom - players[j].y - players[j].dheight) / height;
       }
+    }
+
+    //Giving the player rewards for maintaining least distance from optimal hole
+    let dist1 = Math.abs(top - players[j].y);
+    let dist2 = Math.abs(bottom - players[j].y - players[j].dheight);
+    let reward1 = 0, reward2 = 0;
+
+    if(dist1 >= 15 && dist1 <= 100)
+    {
+      reward1 = height / dist1;
+    }
+    else if(dist1 > 100)
+    {
+      reward1 = -1 * height / dist1;
+    }
+    if(dist2 >= 15 && dist1 <= 100)
+    {
+      reward2 = height / dist2;
+    }
+    else if(dist2 > 100)
+    {
+      reward2 = -1 * height / dist2;
+    }
+
+    players[j].reward += reward1;
+    players[j].reward += reward2;
+
+    //Reducing reward if it's not moving in the direction of hole
+    if(top - players[j].y > 0 && dirs[j] !== 0)
+    {
+      players[j].reward -= 2;
+    }
+    else if(top - players[j].y < 0 && dirs[j] !== 2)
+    {
+      players[j].reward -= 2;
+    }
+    if(bottom - players[j].y - players[j].dheight > 0 && dirs[j] !== 0)
+    {
+      players[j].reward -= 2;
+    }
+    else if(bottom - players[j].y - players[j].dheight < 0 && dirs[j] !== 2)
+    {
+      players[j].reward -= 2;
+    }
+    if(players[j].y > top && players[j].y + players[j].dheight < bottom)
+    {
+      players[j].reward += 5;
     }
 
     var inputs = [input1, input2, input3, input4];
@@ -403,6 +449,7 @@ function think()
     var outputs = brains[j].predict(inputs);
     var largest = outputs[0];
     var largestindex = 0;
+
     //Finding the maximum output
     for(var i = 1; i < outputs.length; ++i)
     {
@@ -413,7 +460,7 @@ function think()
       }
     }
 
-    dirs[j] = largestindex - 1;
+    dirs[j] = largestindex;
   }
 }
 
@@ -422,17 +469,46 @@ function createNextGen()
 {
   //Normalizing the rewards
   var sum = 0;
-  var rewards = [];
+  let rewards = [];
   var brainsnext  = [];
   stop  = true;
+  var smallest = savedplayers[0].reward;
+
+  //Finding the smallest reward and adding it to all the rewards to make it positive
+  for(var i = 1; i < savedplayers.reward; ++i)
+  {
+    if(savedplayers[i].reward < smallest)
+    {
+      smallest = savedplayers[i].reward;
+    }
+  }
+
+  var negative = false;
+
+  if(smallest < 0)
+  {
+    negative = true;
+  }
 
   for(var i = 0; i < savedplayers.length; ++i)
   {
+    //Adding the smallest reward to make it all positive if the smallest reward is negative
+    if(negative === true)
+    {
+      savedplayers[i].reward -= smallest;
+    }
+
     sum += savedplayers[i].reward;
   }
 
-  console.log('Average score of this generation', sum / total);
-  console.log('Best score of this generation', score);
+  console.log(sum, total);
+  console.log('Average rewards: ', sum / total);
+
+  //If all the players do the same thing and thier scores are negative
+  if(sum === 0)
+  {
+    sum = 1;
+  }
 
   for(var i = 0; i < savedplayers.length; ++i)
   {
@@ -444,7 +520,7 @@ function createNextGen()
   for(var i = 0; i < total; ++i)
   {
     var child = pickparent(rewards);
-    //child.mutate(0.1);
+    child.mutate(0.1);
     brainsnext.push(child);
   }
 
@@ -460,28 +536,29 @@ function createNextGen()
 //Function to pick parents
 function pickparent(rewards)
 {
-  //Finding best 10% parents
+  //Finding best 25% parents
   var bestrewards = [];
+  let copyrewards = rewards.slice(0, rewards.length);
   var bestrewardsindex = [];
-  var nobest = Math.floor(rewards.length / 10);
+  var nobest = Math.floor(rewards.length / 4);
 
   for(var i = 0; i < nobest; ++i)
   {
-    var best = rewards[0];
+    var best = copyrewards[0];
     var bestindex = 0;
 
-    for(var j = 1; j < rewards.length; ++j)
+    for(var j = 0; j < copyrewards.length; ++j)
     {
-      if(rewards[j] > best && ( (i === 0) || (rewards[j] > bestrewards[i - 1]) ) )
+      if(copyrewards[j] >= best)
       {
-        best = rewards[j];
+        best = copyrewards[j];
         bestindex = j;
       }
     }
 
-    //Removing the best from rewards and adding to best rewards
-    bestrewards.push(rewards[bestindex]);
+    bestrewards.push(best);
     bestrewardsindex.push(bestindex);
+    copyrewards[bestindex] = -10000000;
   }
 
   var found = false;
@@ -491,7 +568,7 @@ function pickparent(rewards)
     var index = Math.floor(Math.random() * bestrewards.length);
     var prob  = Math.random();
 
-    if(prob < rewards[index])
+    if(prob < bestrewards[index])
     {
       return brains[bestrewardsindex[index]];
     }

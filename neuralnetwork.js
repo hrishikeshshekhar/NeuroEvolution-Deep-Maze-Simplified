@@ -132,4 +132,50 @@ function Nn(inputno, hiddenno, outputno)
   {
     return (this.feedforward(inputs));
   }
+
+  //Function to mutate the neural network given a mutation rate
+  this.mutate = function(rate)
+  {
+    var r = Math.random();
+    if(r < rate)
+    {
+      console.log('Mutating');
+
+      //Mutating the weights in output hidden layer
+      for(var i = 0; i < this.weights_ho.rows; ++i)
+      {
+        for(var j = 0; j < this.weights_ho.cols; ++j)
+        {
+          this.weights_ho.matrix[i][j] += Math.random() * 0.2 - 0.1;
+        }
+      }
+
+      //Mutating the weights in input hidden layer
+      for(var i = 0; i < this.weights_ih.rows; ++i)
+      {
+        for(var j = 0; j < this.weights_ih.cols; ++j)
+        {
+          this.weights_ih.matrix[i][j] += Math.random() * 0.2 - 0.1;
+        }
+      }
+
+      //Mutating the biases in  the output layer
+      for(var i = 0; i < this.bias_h.rows; ++i)
+      {
+        for(var j = 0; j < this.bias_h.cols; ++j)
+        {
+          this.bias_h.matrix[i][j] += Math.random() * 0.2 - 0.1;
+        }
+      }
+
+      //Mutating the biases in the hidden layer
+      for(var i = 0; i < this.bias_o.rows; ++i)
+      {
+        for(var j = 0; j < this.bias_o.cols; ++j)
+        {
+          this.bias_o.matrix[i][j] += Math.random() * 0.2 - 0.1;
+        }
+      }
+    }
+  }
 }
