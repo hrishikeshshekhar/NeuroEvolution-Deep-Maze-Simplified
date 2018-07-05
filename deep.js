@@ -3,7 +3,7 @@ var canvas = document.querySelector('canvas');
 var c      = canvas.getContext('2d');
 
 //A variable for keeping track of the population size
-const total = 10;
+const total = 200;
 
 //Setting canvas height and width
 canvas.width  = 800;
@@ -73,7 +73,7 @@ function setup()
   //Creating a neural networks
   for(var i = 0; i < total; ++i)
   {
-    brains[i] = new Nn(4, 4, 2);
+    brains[i] = new Nn(4, 4, 3);
     brains[i].setup();
   }
 
@@ -206,6 +206,9 @@ function check()
           {
             //Resetting it's position back to the left of it
             players[j].x = walls[i].x - players[j].dwidth;
+
+            //Reducing the player's reward
+            players[j].reward -= 100;
           }
         }
 
@@ -239,12 +242,10 @@ function mouseclick(event)
   {
     var x = event.x;
     var y = event.y;
-    console.log(x, y);
 
     //Checking if it is clicked on the restart button
     if( (x > width / 2 - 100) && (x < width / 2 + 100) && (y > height / 2) && (y < height / 2 + 100) )
     {
-      console.log('heree');
       //Calling setup to start the game again
       restart();
     }
@@ -262,16 +263,16 @@ function dialogfornextgen()
   //Displaying the score
   c.font = "50px Georgia";
   c.fillStyle = "rgb(255, 255, 255)";
-  c.fillText('Score: ' + Math.floor(score), width / 2 - 80, height / 2 - 100);
+  c.fillText('Best Score: ' + Math.floor(score), width / 2 - 140, height / 2 - 100);
 
   //Creating a restart button
   c.fillStyle = "rgb(0, 120, 255)";
   c.fillRect(width / 2 - 100, height / 2, 200, 100);
 
   //Restarting text
-  c.font = "40px Georgia";
+  c.font = "27px Georgia";
   c.fillStyle = "rgb(255, 0, 120)";
-  c.fillText("Start Next Generation", width / 2 - 80, height / 2 + 60);
+  c.fillText("Start Next Gen", width / 2 - 80, height / 2 + 60);
 }
 
 //Loading the images
@@ -307,6 +308,7 @@ function restart()
   score          = 0;
   wallpoint      = nowalls - 1;
   players        = [];
+  savedplayers   = [];
   walls          = [];
   speed = -3;
 
@@ -356,7 +358,6 @@ function restart()
     }
   }
 
-
   //Starting game
   stop = false;
   draw();
@@ -400,15 +401,19 @@ function think()
 
     //Making the brain think
     var outputs = brains[j].predict(inputs);
+    var largest = outputs[0];
+    var largestindex = 0;
+    //Finding the maximum output
+    for(var i = 1; i < outputs.length; ++i)
+    {
+      if(outputs[i] > largest)
+      {
+        largest = outputs[i];
+        largestindex = i;
+      }
+    }
 
-    if(outputs[0] > outputs[1])
-    {
-      dirs[j] = 0;
-    }
-    else
-    {
-      dirs[j] = 1;
-    }
+    dirs[j] = largestindex - 1;
   }
 }
 
@@ -417,6 +422,8 @@ function createNextGen()
 {
   //Normalizing the rewards
   var sum = 0;
+  var rewards = [];
+  var brainsnext  = [];
   stop  = true;
 
   for(var i = 0; i < savedplayers.length; ++i)
@@ -424,13 +431,73 @@ function createNextGen()
     sum += savedplayers[i].reward;
   }
 
+  console.log('Average score of this generation', sum / total);
+  console.log('Best score of this generation', score);
+
   for(var i = 0; i < savedplayers.length; ++i)
   {
     savedplayers[i].reward /= sum;
+    rewards.push(savedplayers[i].reward);
   }
+
+  //Picking parents for crossover
+  for(var i = 0; i < total; ++i)
+  {
+    var child = pickparent(rewards);
+    //child.mutate(0.1);
+    brainsnext.push(child);
+  }
+
+  //Assigning the new brains
+  brains = brainsnext;
 
   speed = 0;
 
   //Calling restart
   dialogfornextgen();
+}
+
+//Function to pick parents
+function pickparent(rewards)
+{
+  //Finding best 10% parents
+  var bestrewards = [];
+  var bestrewardsindex = [];
+  var nobest = Math.floor(rewards.length / 10);
+
+  for(var i = 0; i < nobest; ++i)
+  {
+    var best = rewards[0];
+    var bestindex = 0;
+
+    for(var j = 1; j < rewards.length; ++j)
+    {
+      if(rewards[j] > best && ( (i === 0) || (rewards[j] > bestrewards[i - 1]) ) )
+      {
+        best = rewards[j];
+        bestindex = j;
+      }
+    }
+
+    //Removing the best from rewards and adding to best rewards
+    bestrewards.push(rewards[bestindex]);
+    bestrewardsindex.push(bestindex);
+  }
+
+  var found = false;
+  var tries = 0;
+  while(found === false && tries < 10000)
+  {
+    var index = Math.floor(Math.random() * bestrewards.length);
+    var prob  = Math.random();
+
+    if(prob < rewards[index])
+    {
+      return brains[bestrewardsindex[index]];
+    }
+    else
+    {
+      ++tries;
+    }
+  }
 }

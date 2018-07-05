@@ -37,10 +37,16 @@ function Player(x)
     }
 
     //If it is moving downward
-    else
+    else if(dir === -1)
     {
       //Updating the position
       this.y += this.velocity;
+    }
+
+    //To stay in the same position
+    else
+    {
+
     }
 
     //Checking bottom boundry
