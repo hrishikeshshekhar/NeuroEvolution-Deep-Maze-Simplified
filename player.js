@@ -1,52 +1,29 @@
-function Player(x, y, sprite, index)
+function Player(x)
 {
   //Initialzing player's details
   this.x         = x;
-  this.y         = y;
-  this.index     = index;
-  this.width     = 0;
-  this.height    = 0;
+  this.y         = height / 2;
   this.frame     = 0;
   this.frametick = 0;
   this.scale     = 1;
   this.dwidth    = 0;
   this.dheight   = 0;
   this.velocity  = 5;
-  this.action    = 0;
-  this.sprite    = 0;
-  this.health    = 0;
-  this.life      = true;
 
   this.setup = function()
   {
-    //If sprite is a player
-    if(this.sprite === 0)
-    {
-      this.width   = 373;
-      this.height  = 468;
-      this.dwidth  = this.width * this.scale / 5;
-      this.dheight = this.height * this.scale / 5;
-      this.health  = 100;
-    }
+    this.dwidth  = 373 * this.scale / 5;
+    this.dheight = 468 * this.scale / 5;
+    this.frame     = 0;
+    this.frametick = 0;
+    this.velocity  = 5;
+    this.reward    = 0;
   }
 
   this.draw = function ()
   {
-    //For a ninja
-    if(this.sprite === 0)
-    {
-      //Running Ninja
-      if(this.action === 0)
-      {
-        c.drawImage(ninjarun, this.frame * this.width , 0, this.width, this.height, this.x, this.y, this.dwidth, this.dheight);
-      }
-
-      //If the ninja dies
-      else if(this.action === 2)
-      {
-        c.drawImage(ninjadie, this.frame * 498 , 0, 498, 508, this.x, this.y, this.dwidth, this.dheight);
-      }
-    }
+    //Running Ninja
+    c.drawImage(ninjarun, this.frame * 373 , 0, 373, 468, this.x, this.y, this.dwidth, this.dheight);
   }
 
   //Changes the direction to up if dir is 1 and -1 if dir is -1
@@ -128,8 +105,8 @@ function Player(x, y, sprite, index)
     }
 
     //Changing width and height accordingly
-    this.dwidth  = this.width * this.scale / 5;
-    this.dheight = this.height * this.scale / 5;
+    this.dwidth  = 373 * this.scale / 5;
+    this.dheight = 468 * this.scale / 5;
   }
 
   //Changes the frame
@@ -139,25 +116,14 @@ function Player(x, y, sprite, index)
     this.frametick++;
 
     //Changing the frame every 10 ticks
-    if(this.frametick % framecount === 0)
+    if(this.frametick % (framecount) === 0)
     {
       ++this.frame;
 
       //IF the frames are ablove 10, then reset
-      if( (this.frame === 10) && (this.sprite === 0) )
+      if(this.frame === 10)
       {
-        //If the ninja dies
-        if(this.action === 2)
-        {
-          //Killing sprite
-          lifes[this.index] = false;
-
-          //Calling game over function
-          //gameover();
-        }
-
         this.frame = 0;
-
       }
     }
 

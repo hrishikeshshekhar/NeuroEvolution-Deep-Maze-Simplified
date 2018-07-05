@@ -10,6 +10,9 @@ function Wall(x)
   //Creating the lines
   this.setup = function()
   {
+    //Initializing the varialbes
+    this.frametick = 0;
+
     //Creating an array for the lines
     this.open = new Array(Math.floor(height / this.scale));
 
@@ -59,7 +62,7 @@ function Wall(x)
     ++this.frametick;
 
     //Updating the position of the wall
-    this.x += speed / framecount;
+    this.x += (speed / framecount);
 
     if(this.frametick === 1000)
     {
