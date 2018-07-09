@@ -21,6 +21,90 @@ function Nn(inputno, hiddenno, outputno)
     this.bias_o.setup();
   }
 
+  //A function to perform crossover by random mixing of weights
+  Nn.crossover = function(parent1, parent2)
+  {
+    var child = new Nn(1, 4, 3);
+    child.setup();
+
+    //Choosing weights randomly from the parent
+
+    //Weights of the hidden output layer
+    for(let i = 0; i < child.weights_ho.rows; ++i)
+    {
+      for(let j = 0; j < child.weights_ho.cols; ++j)
+      {
+        //Picking parent 1's gene
+        if(Math.random() <= 0.5)
+        {
+          child.weights_ho.matrix[i][j] = parent1.weights_ho.matrix[i][j];
+        }
+        //Picking parent 2's gene
+        else
+        {
+          child.weights_ho.matrix[i][j] = parent2.weights_ho.matrix[i][j];
+        }
+      }
+    }
+
+    //Weights of the input hidden layer
+    for(let i = 0; i < child.weights_ih.rows; ++i)
+    {
+      for(let j = 0; j < child.weights_ih.cols; ++j)
+      {
+        //Picking parent 1's gene
+        if(Math.random() <= 0.5)
+        {
+          child.weights_ih.matrix[i][j] = parent1.weights_ih.matrix[i][j];
+        }
+        //Picking parent 2's gene
+        else
+        {
+          child.weights_ih.matrix[i][j] = parent2.weights_ih.matrix[i][j];
+        }
+      }
+    }
+
+    //Bias of the output layer
+    for(let i = 0; i < child.bias_o.rows; ++i)
+    {
+      for(let j = 0; j < child.bias_o.cols; ++j)
+      {
+        //Picking parent 1's gene
+        if(Math.random() <= 0.5)
+        {
+          child.bias_o.matrix[i][j] = parent1.bias_o.matrix[i][j];
+        }
+        //Picking parent 2's gene
+        else
+        {
+          child.bias_o.matrix[i][j] = parent2.bias_o.matrix[i][j];
+        }
+      }
+    }
+
+    //Bias of the output layer
+    for(let i = 0; i < child.bias_o.rows; ++i)
+    {
+      for(let j = 0; j < child.bias_o.cols; ++j)
+      {
+        //Picking parent 1's gene
+        if(Math.random() <= 0.5)
+        {
+          child.bias_o.matrix[i][j] = parent1.bias_o.matrix[i][j];
+        }
+        //Picking parent 2's gene
+        else
+        {
+          child.bias_o.matrix[i][j] = parent2.bias_o.matrix[i][j];
+        }
+      }
+    }
+
+    //Returing the child
+    return child;
+  }
+
   this.feedforward = function(inputs)
   {
     //Creating the output matrix
@@ -51,9 +135,6 @@ function Nn(inputno, hiddenno, outputno)
   this.train = function(inputs, targets)
   {
     //Displaying changes
-    this.weights_ih.print();
-    this.weights_ho.print();
-
     //Creating the output errors
     var error_o = new Matrix(targets.length, 1);
 
@@ -123,8 +204,6 @@ function Nn(inputno, hiddenno, outputno)
     this.bias_h = Matrix.add(this.bias_h, gradient_ih);
 
     //Displaying changes
-    this.weights_ih.print();
-    this.weights_ho.print();
   }
 
   //Function to predict given neural network

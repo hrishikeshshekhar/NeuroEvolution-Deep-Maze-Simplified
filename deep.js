@@ -3,7 +3,7 @@ var canvas = document.querySelector('canvas');
 var c      = canvas.getContext('2d');
 
 //A variable for keeping track of the population size
-const total = 10;
+const total = 100;
 
 //Setting canvas height and width
 canvas.width  = 800;
@@ -17,6 +17,10 @@ var speed;
 var maxspeed;
 var score;
 var acc;
+
+//Variable to store training data
+var training_data = [];
+var training_inputs = [];
 
 //Variables for the players
 var players;
@@ -42,7 +46,6 @@ var framecount = 3;
 //Variables for images
 var ninjarun    = new Image();
 var background  = new Image();
-var ninjadie    = new Image();
 var sky         = new Image();
 
 //Function to initialize all Variables
@@ -57,7 +60,6 @@ function setup()
   players        = [];
   savedplayers   = [];
   walls          = [];
-  brains         = [];
   dirs           = [];
   nowalls        = 10;
   wallpoint      = nowalls - 1;
@@ -67,14 +69,20 @@ function setup()
   acc            = 0.2;
   minspacing     = 200;
   maxspacing     = 300;
-  framecount     = 3;
+  framecount     = 5;
   score          = 0;
 
-  //Creating a neural networks
+  //Creating players
   for(var i = 0; i < total; ++i)
   {
-    brains[i] = new Nn(4, 8, 3);
-    brains[i].setup();
+    //Initializing the players
+    var player = new Player(width / 5, i);
+
+    //Setting up players
+    player.setup();
+
+    //Pushing player to the players array
+    players.push(player);
   }
 
   //Starting game
@@ -135,7 +143,7 @@ function update()
   score  -= speed;
 
   //Increasing the speed every 1000
-  if (score % 5000 < -speed)
+  if (score % 100 < -speed)
   {
     //Increasing the speed every 1000
     speed -= acc;
@@ -276,7 +284,6 @@ function dialogfornextgen()
 function loadimages()
 {
   ninjarun.src    = 'NinjaRun.png';
-  ninjadie.src    = 'NinjaDead.png';
   sky.src         = 'sky.jpg';
   background.src  = 'background.jpg';
 
@@ -285,10 +292,6 @@ function loadimages()
     console.log('Image loaded');
   }
   background.onload = function()
-  {
-    console.log('Image loaded');
-  }
-  ninjadie.onload = function()
   {
     console.log('Image loaded');
   }
@@ -366,87 +369,35 @@ function think()
   for(var j = 0; j < players.length; ++j)
   {
     var closestwall;
+    var leastdist = 100000;
+    var leastindex = -1;
 
     //Finding closest wall after
     for(var i = 0; i < walls.length; ++i)
     {
-      if(walls[i].x > players[j].x)
+      if(walls[i].x > players[j].x && walls[i].x < leastdist)
       {
-        closestwall = walls[i];
-        break;
+        leastdist = walls[i].x - players[j].x;
+        leastindex = i;
       }
     }
 
-    //Height of person
-    let input1 = players[j].x / width;
-
-    //The horizontal distance from a wall
-    let input2 = (closestwall.x - players[j].x - players[j].dwidth) / width;
+    closestwall = walls[leastindex];
 
     //The distance from a wall's top opening
-    let input3, input4, top, bottom;
+    let top, input;
     for(var i = 0; i < closestwall.open.length; ++i)
     {
       if(closestwall.open[i] === true)
       {
         top = closestwall.scale * i;
-        bottom = closestwall.scale * (i + 1);
-        input3 = (top - players[j].y)/ height;
-        input4 = (bottom - players[j].y - players[j].dheight) / height;
+        input = (top - players[j].y) / height;
       }
     }
 
-    //Giving the player rewards for maintaining least distance from optimal hole
-    let dist1 = Math.abs(top - players[j].y);
-    let dist2 = Math.abs(bottom - players[j].y - players[j].dheight);
-    let reward1 = 0, reward2 = 0;
-
-    if(dist1 >= 15 && dist1 <= 100)
-    {
-      reward1 = height / dist1;
-    }
-    else if(dist1 > 100)
-    {
-      reward1 = -1 * height / dist1;
-    }
-    if(dist2 >= 15 && dist1 <= 100)
-    {
-      reward2 = height / dist2;
-    }
-    else if(dist2 > 100)
-    {
-      reward2 = -1 * height / dist2;
-    }
-
-    players[j].reward += reward1;
-    players[j].reward += reward2;
-
-    //Reducing reward if it's not moving in the direction of hole
-    if(top - players[j].y > 0 && dirs[j] !== 0)
-    {
-      players[j].reward -= 2;
-    }
-    else if(top - players[j].y < 0 && dirs[j] !== 2)
-    {
-      players[j].reward -= 2;
-    }
-    if(bottom - players[j].y - players[j].dheight > 0 && dirs[j] !== 0)
-    {
-      players[j].reward -= 2;
-    }
-    else if(bottom - players[j].y - players[j].dheight < 0 && dirs[j] !== 2)
-    {
-      players[j].reward -= 2;
-    }
-    if(players[j].y > top && players[j].y + players[j].dheight < bottom)
-    {
-      players[j].reward += 5;
-    }
-
-    var inputs = [input1, input2, input3, input4];
+    var outputs = players[j].brain.predict([input]);
 
     //Making the brain think
-    var outputs = brains[j].predict(inputs);
     var largest = outputs[0];
     var largestindex = 0;
 
@@ -470,34 +421,12 @@ function createNextGen()
   //Normalizing the rewards
   var sum = 0;
   let rewards = [];
-  var brainsnext  = [];
   stop  = true;
   var smallest = savedplayers[0].reward;
 
   //Finding the smallest reward and adding it to all the rewards to make it positive
-  for(var i = 1; i < savedplayers.reward; ++i)
-  {
-    if(savedplayers[i].reward < smallest)
-    {
-      smallest = savedplayers[i].reward;
-    }
-  }
-
-  var negative = false;
-
-  if(smallest < 0)
-  {
-    negative = true;
-  }
-
   for(var i = 0; i < savedplayers.length; ++i)
   {
-    //Adding the smallest reward to make it all positive if the smallest reward is negative
-    if(negative === true)
-    {
-      savedplayers[i].reward -= smallest;
-    }
-
     sum += savedplayers[i].reward;
   }
 
@@ -519,58 +448,63 @@ function createNextGen()
   //Picking parents for crossover
   for(var i = 0; i < total; ++i)
   {
-    var child = pickparent(rewards);
+    var parent1 = pickparent(rewards);
+    var parent2 = pickparent(rewards);
+    var child   = Nn.crossover(parent1, parent2);
     child.mutate(0.1);
-    brainsnext.push(child);
-  }
 
-  //Assigning the new brains
-  brains = brainsnext;
+    savedplayers[i].brain = child;
+  }
 
   speed = 0;
 
-  //Calling restart
+  //Setting the players to saved players
+  players = savedplayers;
+
+  //Calling dialog for next gen every 10 generations
   dialogfornextgen();
 }
 
 //Function to pick parents
 function pickparent(rewards)
 {
-  //Finding best 25% parents
-  var bestrewards = [];
-  let copyrewards = rewards.slice(0, rewards.length);
-  var bestrewardsindex = [];
-  var nobest = Math.floor(rewards.length / 4);
+  // //Finding best 25% parents
+  // var bestrewards = [];
+  // let copyrewards = rewards.slice(0, rewards.length);
+  // var bestrewardsindex = [];
+  // var nobest = Math.floor(rewards.length / 4);
+  //
+  // for(var i = 0; i < nobest; ++i)
+  // {
+  //   var best = copyrewards[0];
+  //   var bestindex = 0;
+  //
+  //   for(var j = 0; j < copyrewards.length; ++j)
+  //   {
+  //     if(copyrewards[j] >= best)
+  //     {
+  //       best = copyrewards[j];
+  //       bestindex = j;
+  //     }
+  //   }
+  //
+  //   bestrewards.push(best);
+  //   bestrewardsindex.push(bestindex);
+  //   copyrewards[bestindex] = -10000000;
+  // }
 
-  for(var i = 0; i < nobest; ++i)
-  {
-    var best = copyrewards[0];
-    var bestindex = 0;
-
-    for(var j = 0; j < copyrewards.length; ++j)
-    {
-      if(copyrewards[j] >= best)
-      {
-        best = copyrewards[j];
-        bestindex = j;
-      }
-    }
-
-    bestrewards.push(best);
-    bestrewardsindex.push(bestindex);
-    copyrewards[bestindex] = -10000000;
-  }
-
+  //A variavle to see if the player to mutate has been found
   var found = false;
   var tries = 0;
+
   while(found === false && tries < 10000)
   {
-    var index = Math.floor(Math.random() * bestrewards.length);
+    var index = Math.floor(Math.random() * rewards.length);
     var prob  = Math.random();
 
-    if(prob < bestrewards[index])
+    if(prob < rewards[index])
     {
-      return brains[bestrewardsindex[index]];
+      return savedplayers[index].brain;
     }
     else
     {

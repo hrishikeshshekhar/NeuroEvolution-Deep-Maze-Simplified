@@ -8,6 +8,7 @@ function Player(x)
   this.scale     = 1;
   this.dwidth    = 0;
   this.dheight   = 0;
+  this.reward    = 0;
   this.velocity  = 5;
 
   this.setup = function()
@@ -18,6 +19,8 @@ function Player(x)
     this.frametick = 0;
     this.velocity  = 5;
     this.reward    = 0;
+    this.brain = new Nn(1, 4, 3);
+    this.brain.setup();
   }
 
   this.draw = function ()
@@ -34,6 +37,7 @@ function Player(x)
     {
       //Updating position with mouse
       this.y -= this.velocity;
+      dirs[0] = 1;
     }
 
     //If it is moving downward
@@ -41,12 +45,7 @@ function Player(x)
     {
       //Updating the position
       this.y += this.velocity;
-    }
-
-    //To stay in the same position
-    else
-    {
-
+      dirs[0] = 1;
     }
 
     //Checking bottom boundry
