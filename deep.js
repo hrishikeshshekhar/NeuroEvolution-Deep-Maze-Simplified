@@ -143,7 +143,7 @@ function update()
   score  -= speed;
 
   //Increasing the speed every 1000
-  if (score % 100 < -speed)
+  if (score % 5000 < -speed)
   {
     //Increasing the speed every 1000
     speed -= acc;
@@ -183,7 +183,7 @@ function check()
     {
       //Removing the player
       var killed = players.splice(j, 1)[0];
-      killed.reward += score;
+      killed.reward = (score * score);
       savedplayers.push(killed);
 
       //Checking if the game is over
@@ -252,7 +252,7 @@ function mouseclick(event)
     if( (x > width / 2 - 100) && (x < width / 2 + 100) && (y > height / 2) && (y < height / 2 + 100) )
     {
       //Calling setup to start the game again
-      restart();
+      setup();
     }
   }
 }
@@ -277,7 +277,7 @@ function dialogfornextgen()
   //Restarting text
   c.font = "27px Georgia";
   c.fillStyle = "rgb(255, 0, 120)";
-  c.fillText("Start Next Gen", width / 2 - 80, height / 2 + 60);
+  c.fillText("Try Again", width / 2 - 80, height / 2 + 60);
 }
 
 //Loading the images
@@ -430,9 +430,6 @@ function createNextGen()
     sum += savedplayers[i].reward;
   }
 
-  console.log(sum, total);
-  console.log('Average rewards: ', sum / total);
-
   //If all the players do the same thing and thier scores are negative
   if(sum === 0)
   {
@@ -448,9 +445,19 @@ function createNextGen()
   //Picking parents for crossover
   for(var i = 0; i < total; ++i)
   {
+    //Picking parents for crossover
     var parent1 = pickparent(rewards);
+    let fitness1 = savedplayers[parent1].reward;
+    parent1 = savedplayers[parent1].brain;
     var parent2 = pickparent(rewards);
-    var child   = Nn.crossover(parent1, parent2);
+    let fitness2 = savedplayers[parent2].reward;
+    parent2 = savedplayers[parent2].brain;
+    let prob = fitness1 / (fitness1 + fitness2);
+
+    //Creating child with crossover
+    var child   = Nn.crossover(parent1, parent2, prob);
+
+    //Mutating child with 10% mutation rate incase there is not enough variety
     child.mutate(0.1);
 
     savedplayers[i].brain = child;
@@ -461,38 +468,21 @@ function createNextGen()
   //Setting the players to saved players
   players = savedplayers;
 
-  //Calling dialog for next gen every 10 generations
-  dialogfornextgen();
+  if(score > 100000)
+  {
+    //Calling dialog for next gen every 10 generations
+    dialogfornextgen();
+  }
+  else
+  {
+    //Restarting
+    restart();
+  }
 }
 
 //Function to pick parents
 function pickparent(rewards)
 {
-  // //Finding best 25% parents
-  // var bestrewards = [];
-  // let copyrewards = rewards.slice(0, rewards.length);
-  // var bestrewardsindex = [];
-  // var nobest = Math.floor(rewards.length / 4);
-  //
-  // for(var i = 0; i < nobest; ++i)
-  // {
-  //   var best = copyrewards[0];
-  //   var bestindex = 0;
-  //
-  //   for(var j = 0; j < copyrewards.length; ++j)
-  //   {
-  //     if(copyrewards[j] >= best)
-  //     {
-  //       best = copyrewards[j];
-  //       bestindex = j;
-  //     }
-  //   }
-  //
-  //   bestrewards.push(best);
-  //   bestrewardsindex.push(bestindex);
-  //   copyrewards[bestindex] = -10000000;
-  // }
-
   //A variavle to see if the player to mutate has been found
   var found = false;
   var tries = 0;
@@ -504,7 +494,7 @@ function pickparent(rewards)
 
     if(prob < rewards[index])
     {
-      return savedplayers[index].brain;
+      return index;
     }
     else
     {

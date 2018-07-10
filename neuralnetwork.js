@@ -22,7 +22,7 @@ function Nn(inputno, hiddenno, outputno)
   }
 
   //A function to perform crossover by random mixing of weights
-  Nn.crossover = function(parent1, parent2)
+  Nn.crossover = function(parent1, parent2, prob)
   {
     var child = new Nn(1, 4, 3);
     child.setup();
@@ -35,7 +35,7 @@ function Nn(inputno, hiddenno, outputno)
       for(let j = 0; j < child.weights_ho.cols; ++j)
       {
         //Picking parent 1's gene
-        if(Math.random() <= 0.5)
+        if(Math.random() <= prob)
         {
           child.weights_ho.matrix[i][j] = parent1.weights_ho.matrix[i][j];
         }
@@ -53,7 +53,7 @@ function Nn(inputno, hiddenno, outputno)
       for(let j = 0; j < child.weights_ih.cols; ++j)
       {
         //Picking parent 1's gene
-        if(Math.random() <= 0.5)
+        if(Math.random() <= prob)
         {
           child.weights_ih.matrix[i][j] = parent1.weights_ih.matrix[i][j];
         }
@@ -71,7 +71,7 @@ function Nn(inputno, hiddenno, outputno)
       for(let j = 0; j < child.bias_o.cols; ++j)
       {
         //Picking parent 1's gene
-        if(Math.random() <= 0.5)
+        if(Math.random() <= prob)
         {
           child.bias_o.matrix[i][j] = parent1.bias_o.matrix[i][j];
         }
@@ -89,7 +89,7 @@ function Nn(inputno, hiddenno, outputno)
       for(let j = 0; j < child.bias_o.cols; ++j)
       {
         //Picking parent 1's gene
-        if(Math.random() <= 0.5)
+        if(Math.random() <= prob)
         {
           child.bias_o.matrix[i][j] = parent1.bias_o.matrix[i][j];
         }
