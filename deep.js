@@ -23,10 +23,10 @@ var training_data = [];
 var training_inputs = [];
 
 //Variables for the players
-var players;
-var savedplayers;
-var stop;
-var generation;
+let players;
+let savedplayers;
+let stop;
+let generation;
 
 //Variable for the walls
 var walls;
@@ -183,7 +183,7 @@ function check()
     {
       //Removing the player
       var killed = players.splice(j, 1)[0];
-      killed.reward = (score * score);
+      killed.reward = (score * score) / 1000000;
       savedplayers.push(killed);
 
       //Checking if the game is over
@@ -252,7 +252,7 @@ function mouseclick(event)
     if( (x > width / 2 - 100) && (x < width / 2 + 100) && (y > height / 2) && (y < height / 2 + 100) )
     {
       //Calling setup to start the game again
-      setup();
+      restart();
     }
   }
 }
@@ -277,7 +277,7 @@ function dialogfornextgen()
   //Restarting text
   c.font = "27px Georgia";
   c.fillStyle = "rgb(255, 0, 120)";
-  c.fillText("Try Again", width / 2 - 80, height / 2 + 60);
+  c.fillText("Next Generation", width / 2 - 80, height / 2 + 60);
 }
 
 //Loading the images
@@ -307,23 +307,9 @@ function restart()
   //Initializing the variables
   score          = 0;
   wallpoint      = nowalls - 1;
-  players        = [];
-  savedplayers   = [];
   walls          = [];
+  savedplayers   = [];
   speed = -3;
-
-  //Creating Deeps
-  for(var i = 0; i < total; ++i)
-  {
-    //Initializing the players
-    var player = new Player(width / 5, i);
-
-    //Setting up players
-    player.setup();
-
-    //Pushing player to the players array
-    players.push(player);
-  }
 
   //Creating the walls
   for(var i = 0; i < nowalls; ++i)
@@ -422,18 +408,11 @@ function createNextGen()
   var sum = 0;
   let rewards = [];
   stop  = true;
-  var smallest = savedplayers[0].reward;
 
-  //Finding the smallest reward and adding it to all the rewards to make it positive
-  for(var i = 0; i < savedplayers.length; ++i)
+  //Finding sum
+  for(let i = 0; i < savedplayers.length; ++i)
   {
     sum += savedplayers[i].reward;
-  }
-
-  //If all the players do the same thing and thier scores are negative
-  if(sum === 0)
-  {
-    sum = 1;
   }
 
   for(var i = 0; i < savedplayers.length; ++i)
@@ -442,8 +421,11 @@ function createNextGen()
     rewards.push(savedplayers[i].reward);
   }
 
+  //Preserving the best bot and making reward 0
+  savedplayers[savedplayers.length - 1].reward = 0;
+  savedplayers[savedplayers.length - 1].x = width / 5;
   //Picking parents for crossover
-  for(var i = 0; i < total; ++i)
+  for(var i = savedplayers.length - 2; i >= 0; --i)
   {
     //Picking parents for crossover
     var parent1 = pickparent(rewards);
@@ -461,21 +443,20 @@ function createNextGen()
     child.mutate(0.1);
 
     savedplayers[i].brain = child;
+    savedplayers[i].reward = 0;
+    savedplayers[i].x = width / 5;
   }
+
+  players = savedplayers;
 
   speed = 0;
 
-  //Setting the players to saved players
-  players = savedplayers;
-
-  if(score > 100000)
+  if(generation % 10 === 0)
   {
-    //Calling dialog for next gen every 10 generations
     dialogfornextgen();
   }
   else
   {
-    //Restarting
     restart();
   }
 }
